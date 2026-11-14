@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Circular Tic Tac Toe</title>
+  <meta name="description" content="Tic Tac Toe on a circular board: 32 cells, 56 ways to win. Play against the computer or a friend.">
+  <meta name="theme-color" content="#0d1226">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-50 -50 100 100'%3E%3Ccircle r='46' fill='%230d1226' stroke='%235b6cff' stroke-width='6'/%3E%3Ccircle r='24' fill='none' stroke='%235b6cff' stroke-width='5'/%3E%3Cpath d='M-46 0H46M0-46V46' stroke='%235b6cff' stroke-width='5'/%3E%3Ccircle cx='18' cy='-18' r='7' fill='none' stroke='%23ff5d7a' stroke-width='5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <!-- ============ MAIN MENU ============ -->
+  <main id="screen-menu" class="screen active">
+    <div class="menu-card">
+      <svg id="logo-board" class="logo-board" viewBox="-100 -100 200 200" aria-hidden="true"></svg>
+      <h1 class="title">Circular<br><span>Tic Tac Toe</span></h1>
+      <p class="tagline">Four in a row &mdash; around the ring, out from the centre, or along a spiral.</p>
+      <div class="menu-buttons">
+        <button class="btn primary" data-action="single">1 Player <small>vs computer</small></button>
+        <button class="btn primary alt" data-action="two">2 Players <small>same device</small></button>
+        <button class="btn" data-action="help">How to play</button>
+      </div>
+      <button class="btn ghost sound-toggle" data-action="sound" aria-label="Toggle sound"></button>
+    </div>
+  </main>
+
+  <!-- ============ SINGLE PLAYER SETUP ============ -->
+  <main id="screen-setup" class="screen">
+    <div class="menu-card">
+      <h2>New game</h2>
+      <h3>Difficulty</h3>
+      <div class="seg" id="seg-level" role="radiogroup" aria-label="Difficulty">
+        <button data-value="easy" role="radio">Easy</button>
+        <button data-value="medium" role="radio">Medium</button>
+        <button data-value="hard" role="radio">Hard</button>
+        <button data-value="master" role="radio">Master</button>
+      </div>
+      <p class="hint" id="level-desc"></p>
+      <h3>You play as</h3>
+      <div class="seg" id="seg-side" role="radiogroup" aria-label="Your side">
+        <button data-value="x" role="radio"><b class="cx">X</b> first</button>
+        <button data-value="o" role="radio"><b class="co">O</b> second</button>
+        <button data-value="random" role="radio">Random</button>
+      </div>
+      <div class="menu-buttons">
+        <button class="btn primary" data-action="start-single">Start game</button>
+        <button class="btn" data-action="menu">Back</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ GAME ============ -->
+  <main id="screen-game" class="screen">
+    <header class="topbar">
+      <button class="btn ghost" data-action="menu" aria-label="Back to menu">&larr; Menu</button>
+      <div class="topbar-title" id="game-title"></div>
+      <div class="topbar-right">
+        <button class="btn ghost" data-action="help" aria-label="How to play">?</button>
+        <button class="btn ghost sound-toggle" data-action="sound" aria-label="Toggle sound"></button>
+      </div>
+    </header>
+
+    <section class="players">
+      <div class="player px" id="card-x">
+        <span class="mark">X</span>
+        <span class="pname" id="name-x"></span>
+        <span class="score" id="score-x">0</span>
+      </div>
+      <div class="draws"><span id="score-d">0</span><small>draws</small></div>
+      <div class="player po" id="card-o">
+        <span class="score" id="score-o">0</span>
+        <span class="pname" id="name-o"></span>
+        <span class="mark">O</span>
+      </div>
+    </section>
+
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+
+    <div class="board-wrap">
+      <svg id="board" class="board" viewBox="-100 -100 200 200" role="group" aria-label="Game board"></svg>
+    </div>
+
+    <div class="controls">
+      <button class="btn" data-action="undo" id="btn-undo" title="Undo (Ctrl+Z)">&#8630; Undo</button>
+      <button class="btn" data-action="redo" id="btn-redo" title="Redo (Ctrl+Y)">Redo &#8631;</button>
+      <button class="btn" data-action="restart" id="btn-restart" title="New game (N)">New game</button>
+    </div>
+
+    <div class="result" id="result" hidden>
+      <div class="result-text" id="result-text"></div>
+      <div class="result-sub" id="result-sub"></div>
+      <div class="result-buttons">
+        <button class="btn primary" data-action="restart">Play again</button>
+        <button class="btn" data-action="undo">&#8630; Undo</button>
+        <button class="btn" data-action="menu">Menu</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ HELP ============ -->
+  <div class="modal" id="help" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <button class="btn ghost modal-close" data-action="close-help" aria-label="Close">&times;</button>
+      <h2 id="help-title">How to play</h2>
+      <p>The board has <b>4 rings</b> and <b>8 sectors</b> &mdash; 32 cells. Players take turns placing a mark
+        (<b class="cx">X</b> goes first) on any empty cell. The first to get <b>four in a row</b> wins.
+        If the board fills up with no winner, it&rsquo;s a draw.</p>
+      <p>There are <b>56</b> winning patterns of four kinds:</p>
+      <div class="patterns">
+        <figure><svg class="mini" data-pattern="ring" viewBox="-100 -100 200 200"></svg><figcaption><b>Half ring</b><br>4 neighbours in one ring (32)</figcaption></figure>
+        <figure><svg class="mini" data-pattern="line" viewBox="-100 -100 200 200"></svg><figcaption><b>Line</b><br>one sector, centre to edge (8)</figcaption></figure>
+        <figure><svg class="mini" data-pattern="spiralL" viewBox="-100 -100 200 200"></svg><figcaption><b>Spiral left</b><br>one step over per ring (8)</figcaption></figure>
+        <figure><svg class="mini" data-pattern="spiralR" viewBox="-100 -100 200 200"></svg><figcaption><b>Spiral right</b><br>the other way round (8)</figcaption></figure>
+      </div>
+      <h3>Tips</h3>
+      <ul>
+        <li>Three in a row with the fourth cell empty is a <b>threat</b> &mdash; your opponent must block it.</li>
+        <li>Make <b>two threats at once</b> and they can only block one.</li>
+        <li>Every cell sits on 7 patterns. Rings wrap around, so there are no &ldquo;edges&rdquo; sideways.</li>
+      </ul>
+      <h3>Controls</h3>
+      <ul>
+        <li>Click / tap a cell to play. Keyboard: <kbd>Tab</kbd> or arrow keys to move, <kbd>Enter</kbd> to place.</li>
+        <li><kbd>Ctrl</kbd>+<kbd>Z</kbd> undo, <kbd>Ctrl</kbd>+<kbd>Y</kbd> redo, <kbd>N</kbd> new game, <kbd>M</kbd> mute.</li>
+      </ul>
+      <h3>Can Master be beaten?</h3>
+      <p><b>Only if you move first.</b> This game is <em>solved</em>: the first player can always force a win by opening on the innermost (or outermost) ring. Master knows that win &mdash; when it plays <b class="cx">X</b> it wins every single game, guaranteed (checked against every possible defence). When <em>you</em> play <b class="cx">X</b>, a winning line exists for you, but you have to find it: one slip and Master takes over.</p>
+    </div>
+  </div>
+
+  <script src="js/book.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

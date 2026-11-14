@@ -1,0 +1,9 @@
+<!doctype html><meta charset="utf-8"><title>CTTT verify</title>
+<p>Plays Master (moving first) against every possible sequence of replies and checks it always wins.</p>
+<pre id="out"></pre>
+<script>
+var w = new Worker('verify-worker.js'), out = document.getElementById('out');
+w.onmessage = function (e) { out.textContent += e.data + '\n'; };
+w.onerror = function (e) { out.textContent += 'ERR ' + e.message + '\n'; };
+w.postMessage(1);
+</script>
