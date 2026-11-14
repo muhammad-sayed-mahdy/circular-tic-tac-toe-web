@@ -136,6 +136,11 @@ h1, h2, h3, p { margin: 0; }
 .menu-card h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 18px 0 8px; }
 .menu-buttons { display: grid; gap: 10px; margin-top: 22px; }
 .hint-text { color: var(--muted); font-size: 14px; min-height: 3em; margin-top: 10px; }
+/* link back to the source repository (main menu) */
+.repo-link { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; padding: 6px 10px; border-radius: 10px; color: var(--muted); font-size: 14px; font-weight: 600; text-decoration: none; transition: color .15s, background .15s; }
+.repo-link:hover { color: var(--text); background: color-mix(in srgb, var(--text) 8%, transparent); }
+.repo-link:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+.modal-card a { color: var(--x); font-weight: 600; }
 
 /* ---------- buttons ---------- */
 .btn {
