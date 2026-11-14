@@ -661,4 +661,9 @@
   initBoard(); drawPatterns(); drawLogo(); syncUI();
   recompute(); render(false);
   getWorker();   // warm up so the first computer move is not delayed by loading the worker
+
+  // Offline support (see sw.js). Service workers need http(s); skipped when opened from file://.
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.protocol === 'http:')) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  }
 })();

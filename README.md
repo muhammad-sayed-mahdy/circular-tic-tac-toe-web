@@ -1,12 +1,20 @@
 # Circular Tic Tac Toe
 
+[![Play now](https://img.shields.io/badge/Play%20now-in%20your%20browser-5b34e6?style=for-the-badge)](https://muhammad-sayed-mahdy.github.io/circular-tic-tac-toe-web/)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
+![Vanilla JS](https://img.shields.io/badge/vanilla-JavaScript-f7df1e)
+
+![Circular Tic Tac Toe gameplay: a two-player game on the ring board, a hint, and a winning spiral](docs/demo.gif)
+
 **Circular Tic Tac Toe** (also called round, radial or polar tic-tac-toe / noughts and crosses) is a free
 browser game played on a ring-shaped board: **4 rings × 8 sectors = 32 cells**, and the first player to get
 **four in a row** wins. Play against a computer opponent with four difficulty levels — including a
 perfect-play **Master AI** — or against a friend on the same device.
 
 It is a static web app written in plain **HTML, CSS and vanilla JavaScript**: no framework, no build step,
-no dependencies, and it works offline.
+no dependencies, and it works offline (and can be installed as an app) after the first visit.
 
 > Built by **Claude Fable 5.2** (Anthropic), including the game, the AI, the solver that proves the
 > game-theoretic result below, and this README.
@@ -104,6 +112,9 @@ js/ai-worker.js        runs the engine in a Web Worker
 js/audio.js            synthesised sound effects
 js/game.js             board rendering (SVG), game flow, undo/redo, hints, themes, menus
 icon.png, manifest.webmanifest   app icon and web-app manifest
+sw.js                  service worker: offline support (network first, cache as fallback)
+sitemap.xml            sitemap for search engines
+docs/demo.gif          gameplay recording used in this README
 serve.sh / serve.ps1   tiny local static servers (Linux & macOS / Windows)
 tools/verify.html      exhaustive check that Master always wins when moving first
 tools/book.html        regenerates js/book.js
@@ -134,6 +145,10 @@ inner/outer ring swap). Everything after the book is proven live in milliseconds
 palette; "System" mode follows `prefers-color-scheme` and updates live.
 
 The source files are commented in detail — `js/engine.js` and `js/game.js` each start with an overview.
+
+## License
+
+[MIT](LICENSE) — free to use, modify and share.
 
 ## Keywords
 
