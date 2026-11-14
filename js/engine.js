@@ -1,9 +1,30 @@
 /*
  * Circular Tic Tac Toe - rules + AI engine.
  * Plain script (no modules) so it can be loaded both by the page and by a Web Worker.
+ * Everything is exported on the global `CTTT` object (see the bottom of the file).
  *
- * Board: 4 rings x 8 sectors = 32 cells. cell = ring * 8 + sector (ring 0 is the centre).
- * A position is two 32-bit bitboards (one per player).
+ * BOARD
+ *   4 rings x 8 sectors = 32 cells. cell = ring * 8 + sector, ring 0 is the centre.
+ *   Geometrically the board is a 4 x 8 grid whose long side wraps around (a cylinder):
+ *     - "half ring" = 4 horizontal neighbours (with wrap-around)   -> 4 rings x 8 starts = 32 lines
+ *     - "line"      = one full column (all 4 rings of a sector)    -> 8 lines
+ *     - "spiral"    = a diagonal, one sector over per ring         -> 8 left + 8 right = 16 lines
+ *   56 winning lines in total; every cell lies on exactly 7 of them.
+ *
+ * REPRESENTATION
+ *   Because there are exactly 32 cells, one player's stones fit in a single 32-bit integer
+ *   (bit c set = stone on cell c). A position is two such "bitboards". Each winning line is a
+ *   4-bit mask, so "has this player completed line L?" is `(stones & L) === L` - one AND.
+ *   Throughout the search the two boards are passed as (me, opp): `me` is always the side to move.
+ *
+ * AI IN ONE PARAGRAPH
+ *   Searcher.search() is a negamax alpha-beta search with a transposition table. Forced moves
+ *   (blocking a three) are searched for free and threat-making moves are cheap, so forcing
+ *   sequences are followed very deeply. Searcher.bestMove() wraps it in iterative deepening with a
+ *   heuristic evaluation (used by Medium / Hard and as Master's fallback). Searcher.prove() runs
+ *   the same search with NO heuristics, looking only for forced wins - that is how the game was
+ *   solved (first player wins) and how Master plays perfectly, helped by a small opening book
+ *   (book.js) for the few positions whose proof is too slow to redo during play.
  */
 (function (root) {
   'use strict';
@@ -80,12 +101,29 @@
   }
 
   // ---------------------------------------------------------------- search
+  /*
+   * SCORES are always from the point of view of the side to move.
+   *   WIN - ply   : a forced win (sooner is better, so the engine picks the fastest win and,
+   *                 when losing, the longest resistance)
+   *   |score| > WIN_T  means "proven win/loss"; anything smaller is a heuristic estimate
+   *   0           : draw (or "nothing proven" in proof mode)
+   */
   var WIN = 10000, WIN_T = 9000, INF = 30000;
+  // Transposition-table entry kinds: the stored score is exact, a lower bound, or an upper bound.
   var EXACT = 1, LOWER = 2, UPPER = 3;
+  // Heuristic value of a line that only one player occupies, indexed by how many stones they have on it.
   var EVAL_W = [0, 1, 5, 25, 0];
+  // Move-ordering bonuses per line through the candidate cell, indexed by stones already on that line.
+  // ORD_ME: my stones on a line the opponent has not touched. 2 of mine -> this move makes a three
+  //         (a threat); the huge value 1000 doubles as the "is a threat move" flag (score >= 1000).
+  // ORD_OP: the opponent's stones on a line I have not touched (playing here spoils it).
   var ORD_ME = [1, 4, 1000, 0, 0];
   var ORD_OP = [0, 3, 14, 0, 0];
 
+  /**
+   * Static evaluation for the side to move: every line still winnable by exactly one player
+   * scores for that player, weighted by how full it is. Lines containing both colours are dead.
+   */
   function evaluate(me, opp) {
     var sc = 0, i, a, b;
     for (i = 0; i < NL; i++) {
@@ -96,6 +134,15 @@
     return sc + 2;
   }
 
+  /**
+   * A search instance: owns a transposition table (TT) of 2^ttBits entries and the search settings.
+   *
+   * The TT caches results of positions already searched, because the same position is reached
+   * through many different move orders. It is a fixed-size hash table stored in parallel typed
+   * arrays (no per-entry objects, so no garbage): the full key (kMe, kOpp) is kept to rule out
+   * hash collisions, plus the score, the depth it was searched to, the bound kind and the best move.
+   * A newer result simply overwrites whatever was in its slot.
+   */
   function Searcher(ttBits) {
     this.bits = ttBits || 20;
     var size = 1 << this.bits;
@@ -118,6 +165,27 @@
 
   Searcher.prototype.clear = function () { this.tFlag.fill(0); };
 
+  /**
+   * Negamax alpha-beta search. Returns the score of the position for the side to move (`me`).
+   *
+   *   depth       remaining search budget. A quiet move costs `qc`, a threat-making move costs
+   *               `tc`, and a forced block costs nothing - so forcing lines extend automatically.
+   *   alpha/beta  the window of scores that still matter; anything outside is cut off.
+   *   ply         distance from the root (used for "win in N" scores and per-ply buffers).
+   *
+   * Order of business at each node:
+   *   1. I can complete a line           -> win.
+   *   2. Board full                      -> draw.
+   *   3. Opponent has two winning cells  -> loss (I can only block one).
+   *      Opponent has one                -> the block is forced; recurse without spending depth.
+   *   4. Out of depth                    -> heuristic evaluate() (or 0 in proof mode).
+   *   5. Transposition-table lookup      -> maybe an immediate answer or a tighter window.
+   *   6. Generate moves, best-looking first (TT move, then threat makers, then line potential),
+   *      search each, keep the best, stop as soon as alpha >= beta, store the result.
+   *
+   * Soundness: a score beyond WIN_T can only originate from steps 1/3, i.e. from a real
+   * four-in-a-row, never from a depth cut-off. So a win/loss score is a proof whatever the depth.
+   */
   Searcher.prototype.search = function (me, opp, depth, alpha, beta, ply) {
     if ((++this.nodes & 8191) === 0 && ((this.deadline && Date.now() > this.deadline) || (this.nodeLimit && this.nodes > this.nodeLimit))) this.abort = true;
     if (this.abort) return 0;
@@ -138,8 +206,10 @@
     if (f !== 0 && this.kMe[idx] === me && this.kOpp[idx] === opp) {
       ttMove = this.tMove[idx];
       sc = this.tScore[idx];
+      // a proven win/loss is valid at any depth; other scores only if searched at least this deep
       var proven = (sc > WIN_T && f !== UPPER) || (sc < -WIN_T && f !== LOWER);
       if (this.tDepth[idx] >= depth || proven) {
+        // win scores are stored relative to the node ("win in N from here"); convert back to root-relative
         if (sc > WIN_T) sc -= ply; else if (sc < -WIN_T) sc += ply;
         if (f === EXACT) return sc;
         if (f === LOWER) { if (sc > alpha) alpha = sc; }
@@ -326,11 +396,15 @@
   }
 
   // ---------------------------------------------------------------- difficulty levels
+  // maxDepth: search budget (see Searcher.search), timeMs: time limit for the heuristic search,
+  // noise: random jitter added to scores (makes weaker levels less predictable),
+  // proveMs: time limit for the forced-win proof search that Master runs first.
   var LEVELS = {
     easy:   { name: 'Easy' },
     medium: { name: 'Medium', maxDepth: 2, noise: 6 },
     hard:   { name: 'Hard', maxDepth: 6, timeMs: 1500, noise: 0 },
-    master: { name: 'Master', maxDepth: 64, timeMs: 2500, noise: 0, proveMs: 4000 }
+    master: { name: 'Master', maxDepth: 64, timeMs: 2500, noise: 0, proveMs: 4000 },
+    hint:   { name: 'Hint', maxDepth: 64, timeMs: 1200, noise: 0, proveMs: 1500 }     // Master's brain, shorter clock
   };
 
   function randomBit(mask) {
@@ -352,7 +426,7 @@
       return { move: randomBit(empty) };
     }
     var cfg = LEVELS[level] || LEVELS.master;
-    if (level === 'master') {
+    if (level === 'master' || level === 'hint') {
       // The game is a proven first-player win starting from the innermost (or, by symmetry, outermost) ring.
       if ((me | opp) === 0) return { move: (Math.random() < 0.5 ? 0 : 24) + Math.floor(Math.random() * 8), proven: true };
       var first = pc(me) === pc(opp);           // am I the first player (X)?

@@ -38,6 +38,7 @@
     placeO: function () { tone(320, 0.16, { type: 'sine', vol: 0.2, to: 460 }); tone(640, 0.06, { vol: 0.04 }); },
     undo:   function () { tone(520, 0.12, { type: 'triangle', vol: 0.09, to: 260 }); },
     redo:   function () { tone(260, 0.12, { type: 'triangle', vol: 0.09, to: 520 }); },
+    hint:   function () { tone(880, 0.1, { type: 'sine', vol: 0.1 }); tone(1320, 0.16, { type: 'sine', vol: 0.09, at: 0.09 }); },
     start:  function () { tone(392, 0.09, { type: 'triangle', vol: 0.1 }); tone(587, 0.14, { type: 'triangle', vol: 0.1, at: 0.08 }); },
     error:  function () { tone(160, 0.12, { type: 'square', vol: 0.04 }); },
     win:    function () { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(f, 0.22, { type: 'triangle', vol: 0.14, at: i * 0.1 }); }); },
