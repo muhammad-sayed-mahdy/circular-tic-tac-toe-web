@@ -85,17 +85,60 @@
       transform: 'translate(' + ctr + ') rotate(' + (-cellAngle(c)) + ')'
     }, parent);
     g.style.setProperty('--sw', (h * 0.44).toFixed(2));          // stroke width scales with the mark
+    // Two versions of every mark: a geometric one and a hand-drawn one. CSS shows whichever the
+    // theme wants (see `.mark .sk`), so switching theme never needs a redraw.
+    var clean = el('g', { 'class': 'clean' }, g), sk = el('g', { 'class': 'sk' }, g);
     if (player === 0) {
-      el('path', { d: 'M' + (-h) + ' ' + (-h) + 'L' + h + ' ' + h, pathLength: 1 }, g);
-      el('path', { d: 'M' + h + ' ' + (-h) + 'L' + (-h) + ' ' + h, pathLength: 1 }, g);
+      el('path', { d: 'M' + (-h) + ' ' + (-h) + 'L' + h + ' ' + h, pathLength: 1 }, clean);
+      el('path', { d: 'M' + h + ' ' + (-h) + 'L' + (-h) + ' ' + h, pathLength: 1 }, clean);
     } else {
-      el('circle', { r: (h * 1.1).toFixed(2), pathLength: 1 }, g);
+      el('circle', { r: (h * 1.1).toFixed(2), pathLength: 1 }, clean);
     }
+    sketchMark(c, player, h * 0.88, sk);        // hand-drawn marks are drawn a touch smaller than the geometric ones
     return g;
+  }
+  /**
+   * The hand-drawn version of a mark: bowed, overshooting strokes for an X and a wobbly loop
+   * that does not quite close for an O. Seeded by the cell so a mark looks the same on every redraw.
+   */
+  function sketchMark(c, player, h, parent) {
+    var seed = (c * 2 + player + 1) * 0x9E3779B1 >>> 0;
+    function rnd() {                                            // mulberry32
+      seed = seed + 0x6D2B79F5 >>> 0;
+      var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+    function jit(a) { return (rnd() * 2 - 1) * a; }
+    function f(n) { return n.toFixed(2); }
+    if (player === 0) {
+      [[-1, -1, 1, 1], [1, -1, -1, 1]].forEach(function (s) {
+        var x0 = s[0] * h * (1 + jit(.16)) + jit(h * .1), y0 = s[1] * h * (1 + jit(.16)) + jit(h * .1);
+        var x1 = s[2] * h * (1 + jit(.16)) + jit(h * .1), y1 = s[3] * h * (1 + jit(.16)) + jit(h * .1);
+        var bow = jit(h * .38), nx = -(y1 - y0), ny = x1 - x0, len = Math.sqrt(nx * nx + ny * ny) || 1;
+        var cx = (x0 + x1) / 2 + nx / len * bow + jit(h * .15), cy = (y0 + y1) / 2 + ny / len * bow + jit(h * .15);
+        el('path', { d: 'M' + f(x0) + ' ' + f(y0) + 'Q' + f(cx) + ' ' + f(cy) + ' ' + f(x1) + ' ' + f(y1), pathLength: 1 }, parent);
+      });
+    } else {
+      var r = h * 1.1, a0 = rnd() * 6.283, sweep = 6.283 + .45 + rnd() * .5, n = 22, pts = [];
+      var ph = rnd() * 6.283, squash = 1 + jit(.1), drift = .1 + rnd() * .1;
+      for (var i = 0; i <= n; i++) {
+        var u = i / n, a = a0 + sweep * u;
+        var rr = r * (1 - drift / 2 + drift * u + .06 * Math.sin(2 * a + ph));
+        pts.push([rr * Math.cos(a) * squash, rr * Math.sin(a) / squash]);
+      }
+      var d = 'M' + f(pts[0][0]) + ' ' + f(pts[0][1]);
+      for (i = 1; i < n; i++) {                                  // smooth curve through the midpoints
+        d += 'Q' + f(pts[i][0]) + ' ' + f(pts[i][1]) + ' ' + f((pts[i][0] + pts[i + 1][0]) / 2) + ' ' + f((pts[i][1] + pts[i + 1][1]) / 2);
+      }
+      el('path', { d: d, pathLength: 1 }, parent);
+    }
   }
   /** Draw the empty board (cells + grid lines) into an <svg>. Returns the 32 cell <path> elements. */
   function drawBoard(svg, interactive) {
     svg.textContent = '';
+    // glow of the outer ring, drawn UNDER the cells so it only shows outside the board
+    el('circle', { r: R[4], 'class': 'halo' }, svg);
     var gCells = el('g', { 'class': 'cells' }, svg), cells = [];
     for (var c = 0; c < E.N; c++) {
       // checkerboard shading helps the eye follow rings and sectors
@@ -116,7 +159,7 @@
     hard: 'Plans a couple of moves ahead and sets up double threats, but slips now and then. A real step up from Medium, and beatable from either side.',
     master: 'Perfect play. Unbeatable when it moves first; if you move first a win exists, but one slip and it is gone.'
   };
-  var THEMES = ['chalk', 'neon', 'sunset'];
+  var THEMES = ['chalk', 'neon', 'comic'];
 
   /** localStorage wrapper that never throws (private browsing, blocked storage, ...). */
   var store = {
@@ -124,6 +167,7 @@
     set: function (k, v) { try { localStorage.setItem('cttt.' + k, v); } catch (e) {} }
   };
 
+  if (store.get('theme', '') === 'sunset') store.set('theme', 'comic');   // Sunset was replaced by Comic
   var prefs = {
     theme: THEMES.indexOf(store.get('theme', '')) >= 0 ? store.get('theme', '') : 'chalk',
     mode: store.get('mode', 'system')      // 'system' | 'light' | 'dark'

@@ -54,7 +54,8 @@
     (function () {
       try {
         var d = document.documentElement, t = localStorage.getItem('cttt.theme'), m = localStorage.getItem('cttt.mode');
-        if (t !== 'chalk' && t !== 'neon' && t !== 'sunset') t = 'chalk';
+        if (t === 'sunset') t = 'comic';                 // Sunset was replaced by Comic
+        if (t !== 'chalk' && t !== 'neon' && t !== 'comic') t = 'chalk';
         if (m !== 'light' && m !== 'dark') m = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         d.setAttribute('data-theme', t); d.setAttribute('data-mode', m);
       } catch (e) {}
@@ -64,6 +65,17 @@
 </head>
 <body>
   <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <!-- SVG filter for the Chalk theme's marks: wobbles the stroke edges and knocks out a little grain. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <filter id="chalk-rough" filterUnits="userSpaceOnUse" x="-12" y="-12" width="24" height="24" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="4" result="wobble"/>
+      <feDisplacementMap in="SourceGraphic" in2="wobble" scale="1.1" xChannelSelector="R" yChannelSelector="G" result="rough"/>
+      <feTurbulence type="fractalNoise" baseFrequency="2.2" numOctaves="1" seed="9" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -3.2 0 0 0 3.1" result="holes"/>
+      <feComposite in="rough" in2="holes" operator="in"/>
+    </filter>
+  </svg>
 
   <noscript>
     <div class="noscript">
@@ -218,9 +230,9 @@
           <span class="tc-prev"><b class="cx">&#10005;</b><b class="co">&#9711;</b></span>
           <span class="tc-name">Neon</span><small>Glowing pop &middot; arcade night</small>
         </button>
-        <button class="theme-card" data-theme="sunset" role="radio">
+        <button class="theme-card" data-theme="comic" role="radio">
           <span class="tc-prev"><b class="cx">&#10005;</b><b class="co">&#9711;</b></span>
-          <span class="tc-name">Sunset</span><small>Peach dawn &middot; purple dusk</small>
+          <span class="tc-name">Comic</span><small>Halftone pop &middot; midnight issue</small>
         </button>
       </div>
       <h3>Appearance</h3>
