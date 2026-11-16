@@ -64,7 +64,7 @@ counting counter-clockwise.
 | --- | --- |
 | Easy | Mostly random; often misses wins and threats |
 | Medium | Always takes a win and blocks a three, plans one move ahead, slightly noisy |
-| Hard | Alpha-beta search several moves deep with threat extensions |
+| Hard | Alpha-beta search a couple of moves deep with threat extensions; on about 1 move in 5 it slips and plays at Medium strength. Beatable from either side |
 | Master | Perfect play: opening book + exhaustive forced-win proof search, with deep heuristic search as fallback |
 
 ### Is the Master AI beatable?

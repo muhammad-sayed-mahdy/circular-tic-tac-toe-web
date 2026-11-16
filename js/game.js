@@ -113,7 +113,7 @@
   var LEVEL_DESC = {
     easy: 'Plays mostly at random and often misses threats. Good for learning the patterns.',
     medium: 'Always takes a win and blocks a three, but only plans one move ahead.',
-    hard: 'Looks several moves ahead and sets up double threats.',
+    hard: 'Plans a couple of moves ahead and sets up double threats, but slips now and then. A real step up from Medium, and beatable from either side.',
     master: 'Perfect play. Unbeatable when it moves first; if you move first a win exists, but one slip and it is gone.'
   };
   var THEMES = ['chalk', 'neon', 'sunset'];
