@@ -8,8 +8,9 @@
 
 ![Circular Tic Tac Toe gameplay: a two-player game on the ring board, a hint, and a winning spiral](docs/demo.gif)
 
-**Circular Tic Tac Toe** (also called round, radial or polar tic-tac-toe / noughts and crosses) is a free
-browser game played on a ring-shaped board: **4 rings × 8 sectors = 32 cells**, and the first player to get
+**Circular Tic Tac Toe** is a **hard, challenging tic tac toe for people who like to think ahead** — not the
+trivial 3×3 game that always ends in a draw. (It is also called round, radial or polar tic-tac-toe / noughts and
+crosses.) It is a free browser game played on a ring-shaped board: **4 rings × 8 sectors = 32 cells**, and the first player to get
 **four in a row** wins. Play against a computer opponent with four difficulty levels — including a
 perfect-play **Master AI** — or against a friend on the same device.
 
@@ -25,7 +26,8 @@ no dependencies, and it works offline (and can be installed as an app) after the
 - **Two players** (hot-seat) on one device
 - **Hints**: shows the best move for the player to move
 - **Undo / redo**, with the scoreboard kept consistent
-- **Three themes** — Chalk, Neon, Sunset — each with **light and dark mode**, following the system setting by default
+- **Cell numbers** 1–32 on the board, so you can tell your opponent which cell you mean (toggle in Settings)
+- **Three themes** — Chalk, Neon, Comic — each with **light and dark mode**, following the system setting by default
 - Main menu, how-to-play screen with pattern diagrams, confirmation before abandoning a game
 - Synthesised **sound effects** (Web Audio, no audio files) with a mute toggle
 - Hover previews, animated marks, highlighted winning line, confetti
@@ -44,8 +46,9 @@ Players take turns placing a mark on any empty cell; **X moves first**. There ar
 
 If all 32 cells fill up with no four in a row, the game is a draw.
 
-Cells are numbered `ring * 8 + sector`, with ring 0 at the centre and cell 0 just right of the bottom spoke,
-counting counter-clockwise.
+Cells are numbered 1–32 on the board. Number = `ring * 8 + sector + 1`, with ring 0 at the centre and
+cell 1 just right of the bottom spoke, counting counter-clockwise. In the code the same cell is `ring * 8 + sector`
+(0–31).
 
 ## Keyboard shortcuts
 
@@ -62,7 +65,7 @@ counting counter-clockwise.
 
 | Level | How it plays |
 | --- | --- |
-| Easy | Mostly random; often misses wins and threats |
+| Easy (default) | Mostly random, but usually takes a win (90%) and blocks a three (85%); never plans ahead, so a double threat beats it |
 | Medium | Always takes a win and blocks a three, plans one move ahead, slightly noisy |
 | Hard | Alpha-beta search a couple of moves deep with threat extensions; on about 1 move in 5 it slips and plays at Medium strength. Beatable from either side |
 | Master | Perfect play: opening book + exhaustive forced-win proof search, with deep heuristic search as fallback |
@@ -152,6 +155,6 @@ The source files are commented in detail — `js/engine.js` and `js/game.js` eac
 
 ## Keywords
 
-circular tic tac toe · round tic-tac-toe · radial / polar tic tac toe · noughts and crosses · four in a row ·
+hard tic tac toe · challenging tic tac toe · tic tac toe for smart people · circular tic tac toe · round tic-tac-toe · radial / polar tic tac toe · noughts and crosses · four in a row ·
 connect four variant · browser board game · JavaScript game · HTML5 game · no dependencies · minimax ·
 alpha-beta pruning · bitboards · transposition table · solved game · game AI · Web Worker · SVG

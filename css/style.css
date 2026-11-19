@@ -238,6 +238,12 @@ svg, svg * { outline: none; -webkit-user-select: none; user-select: none; }
 .hint-ring { fill: none; stroke: var(--hint); stroke-width: 1.6; stroke-dasharray: 3 2.2; pointer-events: none; animation: hint-ring .7s ease-in-out infinite alternate; }
 @keyframes hint-ring { to { opacity: .35; } }
 
+/* small cell numbers (1-32) in each cell's outer corner; hidden by the "Cell numbers: Off" setting */
+.cell-num { font: 700 3.9px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; text-anchor: middle; dominant-baseline: central;
+  fill: color-mix(in srgb, var(--cell-shade) 30%, var(--text)); opacity: .65; pointer-events: none; font-variant-numeric: tabular-nums; }
+.cell-num.shade { fill: color-mix(in srgb, var(--cell) 30%, var(--text)); }
+.board.no-nums .cell-nums { display: none; }
+
 .grid * { fill: none; stroke: var(--grid); stroke-width: 1.1; pointer-events: none; }
 .grid circle:last-of-type { stroke-width: 2.2; stroke: var(--grid-outer); }
 /* the outer ring's glow sits under the cells, so it radiates outwards only and never washes over the board */

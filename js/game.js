@@ -149,12 +149,28 @@
     var gGrid = el('g', { 'class': 'grid' }, svg);
     for (var i = 1; i <= 4; i++) el('circle', { r: R[i] }, gGrid);
     for (var s = 0; s < 8; s++) { var q = pt(R[4], 45 * s); el('line', { x1: 0, y1: 0, x2: q[0], y2: q[1] }, gGrid); }
+    if (interactive) drawNumbers(svg);
     return cells;
+  }
+  /**
+   * Small cell numbers 1..32 tucked into the outer corner of every cell, it counts from the
+   * bottom spoke, anticlockwise, innermost ring first. Drawn upright, above the grid, below the marks.
+   */
+  function drawNumbers(svg) {
+    var g = el('g', { 'class': 'cell-nums', 'aria-hidden': 'true' }, svg);
+    for (var c = 0; c < E.N; c++) {
+      var ring = c >> 3, radius = R[ring + 1] - (ring === 0 ? 3 : 5);
+      var lateral = ring === 0 ? 4.6 : 5.2;                         // distance from the cell's leading edge
+      var deg = -90 + 45 * (c & 7) + lateral / radius * 180 / Math.PI;
+      var shade = (ring + (c & 7)) & 1;                             // same checkerboard as the cell fill
+      var p = pt(radius, deg), t = el('text', { x: p[0], y: p[1], 'class': 'cell-num' + (shade ? ' shade' : '') }, g);
+      t.textContent = c + 1;
+    }
   }
 
   // ====================================================================== settings + state
   var LEVEL_DESC = {
-    easy: 'Plays mostly at random and often misses threats. Good for learning the patterns.',
+    easy: 'Plays mostly at random, but usually blocks a three and takes a win. It never plans ahead, so set up a double threat. A good place to start.',
     medium: 'Always takes a win and blocks a three, but only plans one move ahead.',
     hard: 'Plans a couple of moves ahead and sets up double threats, but slips now and then. A real step up from Medium, and beatable from either side.',
     master: 'Perfect play. Unbeatable when it moves first; if you move first a win exists, but one slip and it is gone.'
@@ -170,13 +186,14 @@
   if (store.get('theme', '') === 'sunset') store.set('theme', 'comic');   // Sunset was replaced by Comic
   var prefs = {
     theme: THEMES.indexOf(store.get('theme', '')) >= 0 ? store.get('theme', '') : 'chalk',
-    mode: store.get('mode', 'system')      // 'system' | 'light' | 'dark'
+    mode: store.get('mode', 'system'),     // 'system' | 'light' | 'dark'
+    nums: store.get('nums', 'on')          // 'on' | 'off': show the cell numbers on the board
   };
 
   /** The whole game state. Only moves/ptr (and the mode settings) are primary; the rest is derived. */
   var G = {
     mode: 'single',                         // 'single' (vs computer) | 'two' (hot-seat)
-    level: store.get('level', 'medium'),
+    level: store.get('level', 'easy'),
     sidePref: store.get('side', 'x'),       // 'x' | 'o' | 'random'
     human: 0,                               // single-player: which side the human plays (0 = X, 1 = O)
     moves: [], ptr: 0,                      // history and the undo/redo position inside it
@@ -238,7 +255,7 @@
       }
       cellEls[c].classList.toggle('taken', want >= 0);
       cellEls[c].classList.toggle('hint', G.hint === c);
-      cellEls[c].setAttribute('aria-label', 'Ring ' + ((c >> 3) + 1) + ', sector ' + ((c & 7) + 1) + ', ' + (want < 0 ? 'empty' : (want ? 'O' : 'X')));
+      cellEls[c].setAttribute('aria-label', 'Cell ' + (c + 1) + ', ring ' + ((c >> 3) + 1) + ', sector ' + ((c & 7) + 1) + ', ' + (want < 0 ? 'empty' : (want ? 'O' : 'X')));
     }
 
     // thin ring around the most recent move
@@ -271,6 +288,7 @@
     boardSvg.classList.toggle('locked', !isHumanTurn());
     boardSvg.classList.toggle('turn-o', turn() === 1);
     boardSvg.classList.toggle('over', G.over);
+    boardSvg.classList.toggle('no-nums', prefs.nums === 'off');
     if (!isHumanTurn()) gGhost.textContent = '';
 
     // player panels + scoreboard
@@ -533,7 +551,7 @@
   /** Push all settings into the setup screen, settings dialog and sound buttons. */
   function syncUI() {
     syncSeg('seg-level', G.level); syncSeg('seg-side', G.sidePref);
-    syncSeg('seg-mode', prefs.mode); syncSeg('seg-sound', Sfx.isEnabled() ? 'on' : 'off');
+    syncSeg('seg-mode', prefs.mode); syncSeg('seg-sound', Sfx.isEnabled() ? 'on' : 'off'); syncSeg('seg-nums', prefs.nums);
     $('#level-desc').textContent = LEVEL_DESC[G.level];
     $$('.theme-card').forEach(function (b) {
       var on = b.getAttribute('data-theme') === prefs.theme;
@@ -607,6 +625,7 @@
       if (group === 'seg-level') { G.level = v; store.set('level', v); }
       else if (group === 'seg-side') { G.sidePref = v; store.set('side', v); }
       else if (group === 'seg-mode') { prefs.mode = v; store.set('mode', v); applyTheme(); }
+      else if (group === 'seg-nums') { prefs.nums = v; store.set('nums', v); render(false); }
       else if (group === 'seg-sound') { if ((v === 'on') !== Sfx.isEnabled()) Sfx.toggle(); }
       Sfx.play('click'); syncUI(); return;
     }

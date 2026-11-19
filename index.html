@@ -5,17 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
   <!-- ===== SEO ===== -->
-  <title>Circular Tic Tac Toe – Play Online Free | 4-in-a-Row on a Ring Board vs AI or a Friend</title>
-  <meta name="description" content="Play Circular Tic Tac Toe free in your browser: a round board with 4 rings, 8 sectors and 56 ways to make four in a row. Beat the unbeatable Master AI or play 2 players on one device. No install, works offline.">
-  <meta name="keywords" content="circular tic tac toe, round tic tac toe, radial tic tac toe, polar tic tac toe, noughts and crosses, four in a row, browser game, board game, strategy game, two player game, tic tac toe AI, minimax, solved game">
+  <title>Circular Tic Tac Toe – Play Online Free | A Hard Tic Tac Toe Game for Smart Players</title>
+  <meta name="description" content="Too easy to never lose at normal tic tac toe? Try the hard version: a ring board with 32 cells and 56 ways to get four in a row. Can you beat the Master AI? Free, no install.">
+  <meta name="keywords" content="hard tic tac toe, challenging tic tac toe, tic tac toe for smart people, advanced tic tac toe, hardest tic tac toe, circular tic tac toe, round tic tac toe, radial tic tac toe, polar tic tac toe, noughts and crosses, four in a row, strategy game, brain game, logic game, two player game, tic tac toe AI, unbeatable AI, minimax, solved game">
   <meta name="author" content="Built by Claude Fable 5.2">
-  <meta name="robots" content="index, follow">
+  <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="canonical" href="https://muhammad-sayed-mahdy.github.io/circular-tic-tac-toe-web/">
   <meta name="application-name" content="Circular Tic Tac Toe">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Circular Tic Tac Toe">
-  <meta property="og:title" content="Circular Tic Tac Toe – four in a row on a ring board">
-  <meta property="og:description" content="A free browser game: tic tac toe on a circular board with 32 cells and 56 winning patterns. Play the perfect-play Master AI or a friend.">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:title" content="Circular Tic Tac Toe – the hard tic tac toe for people who think ahead">
+  <meta property="og:description" content="Normal tic tac toe is trivial. This one has 32 cells, 56 winning patterns and a Master AI that never loses when it moves first. Free in your browser.">
   <meta property="og:url" content="https://muhammad-sayed-mahdy.github.io/circular-tic-tac-toe-web/">
   <meta property="og:image" content="https://muhammad-sayed-mahdy.github.io/circular-tic-tac-toe-web/docs/social-preview.jpg">
   <meta property="og:image:type" content="image/jpeg">
@@ -24,8 +25,8 @@
   <meta property="og:image:alt" content="Circular Tic Tac Toe board with X and O marks">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="https://muhammad-sayed-mahdy.github.io/circular-tic-tac-toe-web/docs/social-preview.jpg">
-  <meta name="twitter:title" content="Circular Tic Tac Toe">
-  <meta name="twitter:description" content="Tic tac toe on a circular board: 32 cells, 56 ways to win. Play vs AI or a friend, free in your browser.">
+  <meta name="twitter:title" content="Circular Tic Tac Toe – a hard tic tac toe for smart players">
+  <meta name="twitter:description" content="Not the trivial 3x3 game: 32 cells, 56 ways to win, and an AI that plays perfectly. Free in your browser.">
   <meta name="theme-color" content="#f4efe4">
   <link rel="icon" href="icon.png" type="image/png">
   <link rel="manifest" href="manifest.webmanifest">
@@ -34,9 +35,11 @@
     "@context": "https://schema.org",
     "@type": "VideoGame",
     "name": "Circular Tic Tac Toe",
+    "alternateName": ["Hard Tic Tac Toe", "Round Tic Tac Toe", "Radial Tic Tac Toe"],
     "url": "https://muhammad-sayed-mahdy.github.io/circular-tic-tac-toe-web/",
     "image": "https://muhammad-sayed-mahdy.github.io/circular-tic-tac-toe-web/docs/social-preview.jpg",
-    "description": "Tic tac toe played on a circular board with 4 rings and 8 sectors. Get four in a row along a ring, a line from the centre, or a spiral. Single player against an AI with four difficulty levels, or two players on one device.",
+    "description": "A hard, challenging version of tic tac toe for people who like to think ahead. The board is a ring with 4 rings and 8 sectors (32 cells) and 56 winning patterns: get four in a row along a ring, a line from the centre, or a spiral. Play an AI with four difficulty levels up to a perfect-play Master, or two players on one device.",
+    "keywords": "hard tic tac toe, challenging tic tac toe, tic tac toe for smart people, strategy game, brain game",
     "genre": ["Board game", "Strategy", "Puzzle"],
     "gamePlatform": "Web browser",
     "applicationCategory": "Game",
@@ -80,9 +83,10 @@
   <noscript>
     <div class="noscript">
       <h1>Circular Tic Tac Toe</h1>
-      <p>Tic tac toe on a circular board with 4 rings and 8 sectors (32 cells). Two players take turns; the first
-        to place four in a row &mdash; half a ring, a line from the centre, or a spiral &mdash; wins. This game needs
-        JavaScript to run. Please enable it to play.</p>
+      <p>A hard, challenging tic tac toe for people who like to think ahead. The board is circular, with 4 rings and
+        8 sectors (32 cells) and 56 ways to win. Two players take turns; the first to place four in a row &mdash; half
+        a ring, a line from the centre, or a spiral &mdash; wins. This game needs JavaScript to run. Please enable it
+        to play.</p>
     </div>
   </noscript>
 
@@ -91,7 +95,7 @@
     <div class="menu-card">
       <svg id="logo-board" class="logo-board" viewBox="-100 -100 200 200" aria-hidden="true"></svg>
       <h1 class="title">Circular<br><span>Tic Tac Toe</span></h1>
-      <p class="tagline">Four in a row &mdash; around the ring, out from the centre, or along a spiral.</p>
+      <p class="tagline">Not your childhood tic tac toe. The hard version, for people who think ahead &mdash; four in a row around the ring, out from the centre, or along a spiral.</p>
       <div class="menu-buttons">
         <button class="btn primary" data-action="single">1 Player <small>vs computer</small></button>
         <button class="btn primary alt" data-action="two">2 Players <small>same device</small></button>
@@ -211,7 +215,13 @@
       <h3>Can Master be beaten?</h3>
       <p><b>Only if you move first.</b> This game is <em>solved</em>: the first player can always force a win by opening on the innermost (or outermost) ring. Master knows that win &mdash; when it plays <b class="cx">X</b> it wins every single game, guaranteed (checked against every possible defence). When <em>you</em> play <b class="cx">X</b>, a winning line exists for you, but you have to find it: one slip and Master takes over.</p>
       <h3>About</h3>
-      <p>Free and open source. <a href="https://github.com/muhammad-sayed-mahdy/circular-tic-tac-toe-web" target="_blank" rel="noopener">View the code, report a bug or star the project on GitHub</a>.</p>
+      <p><b>Circular Tic Tac Toe</b> is a hard tic tac toe for people who think ahead. The ordinary 3&times;3 game is
+        trivial: with sensible play it always ends in a draw. Here the idea is the same &mdash; get your marks in a row
+        &mdash; but the board has <b>32 cells</b> and <b>56 ways to win</b>, every cell sits on seven of them, rings wrap
+        around so there are no safe edges, and the spirals are easy to miss. The game is a forced win for whoever moves
+        first, but finding it means building double threats several moves ahead. Beating a friend takes real planning;
+        beating Master takes a lot more.</p>
+      <p>Free and open source, no install, and it works offline after your first visit. <a href="https://github.com/muhammad-sayed-mahdy/circular-tic-tac-toe-web" target="_blank" rel="noopener">View the code, report a bug or star the project on GitHub</a>.</p>
     </div>
   </div>
 
@@ -240,6 +250,11 @@
         <button data-value="system" role="radio">System</button>
         <button data-value="light" role="radio">Light</button>
         <button data-value="dark" role="radio">Dark</button>
+      </div>
+      <h3>Cell numbers</h3>
+      <div class="seg" id="seg-nums" role="radiogroup" aria-label="Cell numbers on the board">
+        <button data-value="on" role="radio">Show</button>
+        <button data-value="off" role="radio">Hide</button>
       </div>
       <h3>Sound</h3>
       <div class="seg" id="seg-sound" role="radiogroup" aria-label="Sound effects">

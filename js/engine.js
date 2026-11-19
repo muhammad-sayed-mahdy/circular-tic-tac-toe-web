@@ -422,8 +422,11 @@
     var empty = ~(me | opp);
     if (level === 'easy') {
       var w = winCells(me, empty), ow = winCells(opp, empty);
-      if (w !== 0 && Math.random() < 0.8) return { move: randomBit(w) };
-      if (ow !== 0 && Math.random() < 0.5) return { move: randomBit(ow) };
+      // Takes a win most of the time and blocks a three (a line the opponent could complete next
+      // move) most of the time; otherwise it plays at random. It never plans ahead, so it still
+      // loses to a double threat.
+      if (w !== 0 && Math.random() < 0.9) return { move: randomBit(w) };
+      if (ow !== 0 && Math.random() < 0.85) return { move: randomBit(ow) };
       return { move: randomBit(empty) };
     }
     var cfg = LEVELS[level] || LEVELS.master;

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://muhammad-sayed-mahdy.github.io/circular-tic-tac-toe-web/sitemap.xml
