@@ -602,6 +602,36 @@
     show('game'); newGame();
   }
 
+  /**
+   * "Install app" button on the menu. Chromium browsers fire `beforeinstallprompt` when the PWA is installable; we keep
+   * the event and show our own button. iOS Safari has no such event, so there the button opens instructions instead.
+   * The button stays hidden when already running as an installed app, or when neither route is available.
+   */
+  var installEvent = null;
+  var installBtn = $('#btn-install');
+  function isStandalone() {
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  }
+  function isIOSSafari() {
+    var ua = navigator.userAgent;
+    var ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);   // iPadOS reports as Mac
+    return ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  }
+  function installApp() {
+    if (installEvent) {
+      // the event can be used only once; if the player dismisses the prompt the button stays hidden until the
+      // browser offers a new `beforeinstallprompt` (it does that again later on its own)
+      var ev = installEvent; installEvent = null; installBtn.hidden = true;
+      ev.prompt();
+    } else if (isIOSSafari()) openModal('install-ios');
+  }
+  window.addEventListener('beforeinstallprompt', function (ev) {
+    ev.preventDefault(); installEvent = ev;
+    installBtn.hidden = isStandalone();
+  });
+  window.addEventListener('appinstalled', function () { installEvent = null; installBtn.hidden = true; });
+  if (isIOSSafari() && !isStandalone()) installBtn.hidden = false;
+
   /** Every clickable control declares data-action="..."; this table says what each one does. */
   var ACTIONS = {
     single: function () { syncUI(); show('setup'); },
@@ -613,6 +643,7 @@
     'close-modal': function (btn) { closeModal(btn.closest('.modal')); },
     'confirm-ok': function () { closeModal($('#confirm')); var fn = confirmFn; confirmFn = null; if (fn) fn(); },
     sound: toggleSound,
+    install: installApp,
     undo: undo, redo: redo, hint: requestHint, restart: restartClicked
   };
   var SILENT = { undo: 1, redo: 1, restart: 1, 'start-single': 1, two: 1, hint: 1, 'confirm-ok': 1 };   // these make their own sound

@@ -114,7 +114,8 @@ js/book.js             generated opening book for Master (101 positions)
 js/ai-worker.js        runs the engine in a Web Worker
 js/audio.js            synthesised sound effects
 js/game.js             board rendering (SVG), game flow, undo/redo, hints, themes, menus
-icon.png, manifest.webmanifest   app icon and web-app manifest
+icon.png, manifest.webmanifest   favicon and web-app manifest (installable PWA)
+icons/                 PWA icons: 192/512 px, maskable 512 px, iOS apple-touch-icon
 sw.js                  service worker: offline support (network first, cache as fallback)
 sitemap.xml            sitemap for search engines
 docs/demo.gif          gameplay recording used in this README

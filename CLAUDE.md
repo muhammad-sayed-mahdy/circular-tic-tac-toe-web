@@ -43,6 +43,8 @@ There is no lint and no unit-test suite. Engine checks are browser pages under `
 
 **Service worker (`sw.js`).** Network-first, cache fallback. The `CORE` list must include every file the game needs offline — update it when adding/renaming runtime files. Bump `CACHE` (`cttt-vN`) only if old cached entries must be purged.
 
+**PWA install.** `manifest.webmanifest` + `icons/` (192, 512, maskable 512, `apple-touch-icon`) make the game installable. `game.js` captures `beforeinstallprompt` and shows the menu's "Install app" button (`#btn-install`); on iOS Safari, which has no install API, the same button opens the `#install-ios` instructions modal. The button stays hidden when already running standalone.
+
 ## Conventions
 
 - ES5-style JS (`var`, function expressions, `'use strict'` IIFEs) throughout; match it.

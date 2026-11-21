@@ -5,9 +5,10 @@
  * files (no stale-version problems after an update); every successful response is copied into
  * the cache, and that copy is served only when the network is unavailable.
  */
-var CACHE = 'cttt-v1';
+var CACHE = 'cttt-v2';
 var CORE = [
   './', 'index.html', 'css/style.css', 'icon.png', 'manifest.webmanifest',
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',
   'js/book.js', 'js/engine.js', 'js/audio.js', 'js/game.js', 'js/ai-worker.js'
 ];
 
