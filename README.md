@@ -67,7 +67,7 @@ cell 1 just right of the bottom spoke, counting counter-clockwise. In the code t
 | --- | --- |
 | Easy (default) | Mostly random, but usually takes a win (90%) and blocks a three (85%); never plans ahead, so a double threat beats it |
 | Medium | Always takes a win and blocks a three, plans one move ahead, slightly noisy |
-| Hard | Alpha-beta search a couple of moves deep with threat extensions; on about 1 move in 5 it slips and plays at Medium strength. Beatable from either side |
+| Hard | Alpha-beta search a few moves deep with threat extensions, plus a little randomness so it doesn't repeat itself. A real step up from Medium, beatable from either side |
 | Master | Perfect play: opening book + exhaustive forced-win proof search, with deep heuristic search as fallback |
 
 ### Is the Master AI beatable?
@@ -121,6 +121,7 @@ docs/demo.gif          gameplay recording used in this README
 serve.sh / serve.ps1   tiny local static servers (Linux & macOS / Windows)
 tools/verify.html      exhaustive check that Master always wins when moving first
 tools/book.html        regenerates js/book.js
+tools/strength.html    compares the difficulty levels: AI-vs-AI games from both seats, predictability, trap lines
 ```
 
 ## How it works

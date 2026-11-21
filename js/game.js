@@ -172,7 +172,7 @@
   var LEVEL_DESC = {
     easy: 'Plays mostly at random, but usually blocks a three and takes a win. It never plans ahead, so set up a double threat. A good place to start.',
     medium: 'Always takes a win and blocks a three, but only plans one move ahead.',
-    hard: 'Plans a couple of moves ahead and sets up double threats, but slips now and then. A real step up from Medium, and beatable from either side.',
+    hard: 'Looks a few moves ahead, sets up double threats and varies its play. A real step up from Medium, and beatable from either side.',
     master: 'Perfect play. Unbeatable when it moves first; if you move first a win exists, but one slip and it is gone.'
   };
   var THEMES = ['chalk', 'neon', 'comic'];

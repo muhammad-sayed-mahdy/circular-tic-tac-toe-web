@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CTTT difficulty comparison</title>
+<style>
+  body { font: 14px/1.45 system-ui, sans-serif; margin: 20px; color: #222; background: #fafafa; }
+  h1 { font-size: 20px; } h2 { font-size: 16px; margin-top: 26px; } h3 { font-size: 14px; margin: 18px 0 4px; }
+  table { border-collapse: collapse; margin: 8px 0; background: #fff; }
+  th, td { border: 1px solid #ccc; padding: 5px 9px; text-align: center; }
+  th:first-child, td:first-child { text-align: left; }
+  td small, th small { color: #777; font-weight: normal; }
+  .note { color: #555; max-width: 920px; }
+  .err { color: #b00020; font-weight: 600; }
+  #progress { font-weight: 600; }
+  code { background: #eee; padding: 0 4px; border-radius: 3px; }
+  form { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px; max-width: 920px; }
+  label { display: block; font-weight: 600; margin: 10px 0 4px; }
+  label small { font-weight: normal; color: #666; }
+  textarea { width: 100%; box-sizing: border-box; font: 12px ui-monospace, Consolas, monospace; }
+  input[type=number] { width: 80px; }
+  button { margin-top: 12px; font: inherit; padding: 6px 16px; }
+</style>
+</head>
+<body>
+<h1>Difficulty comparison</h1>
+<p class="note">
+  Measures how each AI level would feel to people of different strength. Every level plays simulated players from both
+  seats, and the page checks how predictable each level is: whether it repeats itself, and whether it falls for known
+  trap lines. The levels come from the <code>LEVELS</code> table in <code>js/engine.js</code>, so after editing that
+  table just run this again. To try settings without touching the engine, add them under <em>Extra configs</em>.
+  Settings are kept in the page address, so a run can be repeated or shared.
+</p>
+
+<form id="form" method="get">
+  <label for="f-configs">Extra configs <small>&mdash; JSON array; each entry has a <code>label</code> plus any
+    <code>LEVELS</code> options (<code>maxDepth</code>, <code>timeMs</code>, <code>noise</code>,
+    <code>proveMs</code>, <code>proveBudget</code>, <code>book</code>)</small></label>
+  <textarea id="f-configs" name="configs" rows="3"
+    placeholder='[{ "label": "Hard, depth 4", "maxDepth": 4, "timeMs": 1500, "noise": 6 }]'></textarea>
+
+  <label for="f-traps">Trap lines <small>&mdash; one per line, cells as numbered on the board (1&ndash;32), all moves
+    in order starting with the first player: X, O, X, O&hellip; The computer plays O.</small></label>
+  <textarea id="f-traps" name="traps" rows="3" placeholder="1, 2, 5, 6, 23, 24, 16, 30, 14, 32, 15, 9, 13"></textarea>
+
+  <label for="f-games">Games per pairing <small>&mdash; between two fast levels; pairings with a slow level (one that
+    runs a proof search, like Master) play a quarter of this</small></label>
+  <input id="f-games" name="games" type="number" min="4" max="400" step="4" value="60">
+
+  <label><input id="f-full" name="fullMaster" type="checkbox" value="1"> Give Master its full thinking time
+    <small>&mdash; otherwise it uses a shorter clock so the run finishes in a minute or two</small></label>
+
+  <input type="hidden" name="run" value="1">
+  <button type="submit">Run comparison</button>
+</form>
+
+<p id="progress"></p>
+<div id="out"></div>
+
+<script src="../js/engine.js"></script>
+<script>
+'use strict';
+var E = CTTT;
+
+/* ---------- inputs (from the address bar) ---------- */
+var params = new URLSearchParams(location.search);
+var form = { configs: params.get('configs') || '', traps: params.get('traps') || '',
+             games: Math.max(4, Math.min(400, +params.get('games') || 60)), fullMaster: params.get('fullMaster') === '1' };
+document.getElementById('f-configs').value = form.configs;
+document.getElementById('f-traps').value = form.traps;
+document.getElementById('f-games').value = form.games;
+document.getElementById('f-full').checked = form.fullMaster;
+
+var errors = [];
+
+/* ---------- what to compare ---------- */
+// Every level in engine.js except `hint` (the hint button's brain, not a difficulty), plus the extra configs.
+// A spec is { id, label, level } to play an engine level as-is, or { id, label, cfg } for custom options.
+// "slow" levels run a proof search on every move, so they get fewer games.
+var LEVELS_UNDER_TEST = [];
+Object.keys(E.LEVELS).forEach(function (key) {
+  if (key === 'hint' || key.charAt(0) === '_') return;
+  var lv = E.LEVELS[key], spec = { id: key, label: lv.name || key, level: key, slow: !!lv.proveMs };
+  if (key === 'master' && !form.fullMaster) {
+    spec = { id: key, label: (lv.name || key) + ' (shorter clock)', slow: true,
+             cfg: Object.assign({}, lv, { timeMs: Math.min(lv.timeMs || 800, 800), proveMs: Math.min(lv.proveMs || 800, 800) }) };
+  }
+  LEVELS_UNDER_TEST.push(spec);
+});
+if (form.configs.trim()) {
+  try {
+    var extra = JSON.parse(form.configs);
+    if (!Array.isArray(extra)) extra = [extra];
+    extra.forEach(function (c, i) {
+      var cfg = Object.assign({}, c); delete cfg.label;
+      LEVELS_UNDER_TEST.push({ id: 'extra' + i, label: c.label || 'Extra config ' + (i + 1), cfg: cfg, slow: !!cfg.proveMs });
+    });
+  } catch (e) { errors.push('Extra configs are not valid JSON: ' + e.message); }
+}
+
+// Stand-ins for people. Each plays Master's perfect move some of the time and a Medium-strength move otherwise
+// (`mediumMoves` = chance of a Medium-strength move). "Casual" plays exactly like the Medium level.
+var PLAYERS = [
+  { id: 'casual', label: 'Casual <small>(plays like Medium)</small>', level: 'medium' },
+  { id: 'club',   label: 'Club <small>(40% perfect moves)</small>', cfg: { maxDepth: 64, timeMs: 500, noise: 0, proveMs: 400, book: true }, mediumMoves: 0.6, slow: true },
+  { id: 'strong', label: 'Strong <small>(70% perfect moves)</small>', cfg: { maxDepth: 64, timeMs: 500, noise: 0, proveMs: 400, book: true }, mediumMoves: 0.3, slow: true }
+];
+
+// Trap lines: validated sequences of engine cells (0-31).
+var TRAPS = [];
+form.traps.split(/\r?\n/).forEach(function (text, n) {
+  text = text.trim(); if (!text) return;
+  var cells = text.split(/[\s,;]+/).filter(Boolean).map(Number), line = [], x = 0, o = 0, bad = '';
+  cells.forEach(function (c, i) {
+    if (bad) return;
+    if (!(c >= 1 && c <= 32 && Math.floor(c) === c)) { bad = '"' + c + '" is not a cell number 1-32'; return; }
+    var m = c - 1;
+    if (((x | o) >>> m) & 1) { bad = 'cell ' + c + ' is used twice'; return; }
+    if (i & 1) o |= 1 << m; else x |= 1 << m;
+    if (E.findWin(i & 1 ? o : x) >= 0 && i !== cells.length - 1) bad = 'the game is already won at move ' + (i + 1);
+    line.push(m);
+  });
+  if (!bad && line.length < 2) bad = 'it needs at least one computer reply';
+  if (bad) errors.push('Trap line ' + (n + 1) + ' ignored: ' + bad + '.');
+  else TRAPS.push({ id: TRAPS.length, label: cells.join(', '), line: line });
+});
+
+var GAMES_FAST = form.games, GAMES_SLOW = Math.max(4, Math.round(form.games / 4)), CHUNK = 4;
+
+/* ---------- job queue over a worker pool ---------- */
+var poolSize = Math.max(2, (navigator.hardwareConcurrency || 4) - 1), queue = [], busy = 0, done = 0, total = 0, nextId = 0;
+var results = {}, t0 = Date.now();
+function add(job, onDone) { job.id = ++nextId; queue.push({ job: job, cb: onDone }); total++; }
+function pump() {
+  while (busy < poolSize && queue.length) {
+    var item = queue.shift(); busy++;
+    (function (item) {
+      var w = new Worker('strength-worker.js');
+      w.onmessage = function (e) {
+        w.terminate(); busy--; done++;
+        if (e.data.err) errors.push(e.data.err); else item.cb(e.data.ok);
+        progress(); pump();
+      };
+      w.onerror = function (e) { w.terminate(); busy--; done++; errors.push(e.message); progress(); pump(); };
+      w.postMessage(item.job);
+    })(item);
+  }
+}
+function progress() {
+  document.getElementById('progress').textContent = (done < total ? 'Running: ' : 'Done: ') + done + ' / ' + total +
+    ' jobs, ' + Math.round((Date.now() - t0) / 1000) + ' s, ' + poolSize + ' workers';
+  render();
+  if (done === total) window.DONE = true;
+}
+
+/* ---------- jobs ---------- */
+function pairKey(x, o) { return x.id + '|' + o.id; }
+function addGames(x, o) {
+  var key = pairKey(x, o), n = (x.slow || o.slow) ? GAMES_SLOW : GAMES_FAST;
+  results[key] = { X: 0, O: 0, D: 0, len: 0, ms: [0, 0], cnt: [0, 0] };
+  for (var i = 0; i < n; i += CHUNK) add({ type: 'games', x: x, o: o, n: Math.min(CHUNK, n - i) }, function (r) {
+    var a = results[key];
+    a.X += r.X; a.O += r.O; a.D += r.D; a.len += r.len;
+    a.ms[0] += r.ms[0]; a.ms[1] += r.ms[1]; a.cnt[0] += r.cnt[0]; a.cnt[1] += r.cnt[1];
+  });
+}
+
+// Quiet positions (nothing forced) from a fixed pseudo-random sample, for the "same reply" test.
+function quietPositions(count) {
+  var seed = 12345, out = [];
+  function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x80000000; }
+  while (out.length < count) {
+    var b = [0, 0], moves = 2 + Math.floor(rnd() * 6), ok = true;
+    for (var i = 0; i < moves && ok; i++) {
+      var empty = ~(b[0] | b[1]), c;
+      do { c = Math.floor(rnd() * 32); } while (!((empty >>> c) & 1));
+      b[i & 1] |= 1 << c;
+      ok = E.findWin(b[i & 1]) < 0;
+    }
+    var side = moves & 1, me = b[side], opp = b[1 - side], e2 = ~(me | opp);
+    if (ok && !E.winCells(me, e2) && !E.winCells(opp, e2)) out.push([me, opp]);
+  }
+  return out;
+}
+
+// For a trap line: after each computer reply, how quickly can the first player force a win?
+// Marks which replies were forced blocks and which reply turned the game into a short forced loss.
+function analyseTrap(trap) {
+  var x = 0, o = 0, s = new E.Searcher(20), steps = [];
+  trap.line.forEach(function (c, i) {
+    if ((i & 1) === 0) { x |= 1 << c; return; }
+    var forced = E.winCells(x, ~(x | o)) !== 0;
+    o |= 1 << c;
+    s.clear();
+    var pr = E.findWin(x) >= 0 ? null : s.prove(x, o, { timeMs: 1500, maxBudget: 4 });
+    steps.push({ cell: c + 1, forced: forced, quiet: pr ? pr.budget : null });
+  });
+  trap.steps = steps;
+  var x2 = 0; trap.line.forEach(function (c, i) { if ((i & 1) === 0) x2 |= 1 << c; });
+  trap.xWins = E.findWin(x2) >= 0;
+}
+
+function start() {
+  LEVELS_UNDER_TEST.forEach(function (lv) { PLAYERS.forEach(function (p) { addGames(p, lv); addGames(lv, p); }); });
+  var positions = quietPositions(24);
+  LEVELS_UNDER_TEST.forEach(function (lv) {
+    if (lv.slow) return;   // proof-search levels are too slow to sample hundreds of times
+    results['repeat|' + lv.id] = null;
+    add({ type: 'repeat', spec: lv, positions: positions, k: 10 }, function (r) { results['repeat|' + lv.id] = r.same; });
+    results['replay|' + lv.id] = { ok: 0, total: 0 };
+    for (var i = 0; i < 4; i++) add({ type: 'replay', x: PLAYERS[0], o: lv, lines: 4, k: 8 }, function (r) {
+      results['replay|' + lv.id].ok += r.ok; results['replay|' + lv.id].total += r.total;
+    });
+    TRAPS.forEach(function (t) {
+      var key = 'trap|' + t.id + '|' + lv.id;
+      results[key] = { hits: null, walked: 0, walks: 0, k: 0 };
+      for (var j = 0; j < 4; j++) add({ type: 'trap', spec: lv, line: t.line, k: 12, walks: 25 }, function (r) {
+        var a = results[key];
+        a.hits = a.hits ? a.hits.map(function (h, s) { return h + r.hits[s]; }) : r.hits;
+        a.walked += r.walked; a.walks += 25; a.k += 12;
+      });
+    });
+  });
+  TRAPS.forEach(analyseTrap);
+  progress(); pump();
+}
+
+/* ---------- rendering ---------- */
+function pct(a, n) { return n ? Math.round(100 * a / n) : 0; }
+function cell(r, youAre) {
+  if (!r) return '';
+  var n = r.X + r.O + r.D; if (!n) return '&hellip;';
+  var you = youAre === 'X' ? r.X : r.O, them = youAre === 'X' ? r.O : r.X;
+  return '<b>' + pct(you, n) + '%</b> <small>(' + you + '-' + r.D + '-' + them + ')</small>';
+}
+function seatTable(title, youAre) {
+  var h = '<h2>' + title + '</h2><table><tr><th>Level</th>';
+  PLAYERS.forEach(function (p) { h += '<th>' + p.label + '</th>'; });
+  h += '<th>Game length <small>(moves)</small></th></tr>';
+  LEVELS_UNDER_TEST.forEach(function (lv) {
+    var len = 0, n = 0;
+    h += '<tr><td>' + lv.label + '</td>';
+    PLAYERS.forEach(function (p) {
+      var r = results[youAre === 'X' ? pairKey(p, lv) : pairKey(lv, p)];
+      if (r) { len += r.len; n += r.X + r.O + r.D; }
+      h += '<td>' + cell(r, youAre) + '</td>';
+    });
+    h += '<td>' + (n ? (len / n).toFixed(1) : '') + '</td></tr>';
+  });
+  return h + '</table>';
+}
+function render() {
+  var h = '';
+  if (errors.length) h += '<p class="err">' + errors.join('<br>') + '</p>';
+  h += seatTable('You move first (the level plays O): how often you win', 'X');
+  h += '<small>Cells: your win rate (wins-draws-losses). Columns: the simulated person you are.</small>';
+  h += seatTable('You move second (the level plays X): how often you win', 'O');
+
+  h += '<h2>Predictability</h2><table><tr><th>Level</th><th>Same reply to the same quiet position</th>' +
+    '<th>A won game, replayed move for move, wins again</th><th>Thinking time per move</th></tr>';
+  LEVELS_UNDER_TEST.forEach(function (lv) {
+    var rep = results['repeat|' + lv.id], rp = results['replay|' + lv.id], ms = 0, cnt = 0;
+    PLAYERS.forEach(function (p) {
+      var a = results[pairKey(p, lv)], b = results[pairKey(lv, p)];
+      if (a) { ms += a.ms[1]; cnt += a.cnt[1]; } if (b) { ms += b.ms[0]; cnt += b.cnt[0]; }
+    });
+    h += '<tr><td>' + lv.label + '</td><td>' + (lv.slow ? '&ndash;' : rep == null ? '&hellip;' : Math.round(rep * 100) + '%') +
+      '</td><td>' + (lv.slow ? '&ndash;' : rp && rp.total ? pct(rp.ok, rp.total) + '% <small>(' + rp.ok + '/' + rp.total + ')</small>' : '&hellip;') +
+      '</td><td>' + (cnt ? Math.round(ms / cnt) + ' ms' : '') + '</td></tr>';
+  });
+  h += '</table><small>"Same reply": how often two answers to one quiet position agree. "Replayed": games the casual player ' +
+    'won against the level, replayed with exactly the same moves. Thinking time excludes the game\'s 0.6 s minimum delay. ' +
+    'Slow levels are skipped here.</small>';
+
+  TRAPS.forEach(function (t) {
+    h += '<h3>Trap: ' + t.label + (t.xWins ? '' : ' <small>(the line does not end in a win for X)</small>') + '</h3>';
+    h += '<table><tr><th>Level</th><th>Follows the whole line</th>';
+    t.steps.forEach(function (s) {
+      h += '<th>Reply ' + s.cell + '<br><small>' + (s.forced ? 'forced block' : s.quiet === 0 ? 'X then wins by force' :
+        s.quiet != null ? 'X wins in ' + s.quiet + ' quiet move' + (s.quiet === 1 ? '' : 's') : 'no short win for X') + '</small></th>';
+    });
+    h += '</tr>';
+    LEVELS_UNDER_TEST.forEach(function (lv) {
+      var r = results['trap|' + t.id + '|' + lv.id];
+      h += '<tr><td>' + lv.label + '</td>';
+      if (lv.slow) { h += '<td colspan="' + (t.steps.length + 1) + '">&ndash;</td></tr>'; return; }
+      h += '<td>' + (r && r.walks ? '<b>' + pct(r.walked, r.walks) + '%</b>' : '&hellip;') + '</td>';
+      t.steps.forEach(function (s, i) { h += '<td>' + (r && r.hits ? r.hits[i] + '/' + r.k : '&hellip;') + '</td>'; });
+      h += '</tr>';
+    });
+    h += '</table><small>Each reply column: how often the level picks that reply when the game reaches that point (rotated ' +
+      'or mirrored equivalents count). "Follows the whole line": full replays where it picks every reply.</small>';
+  });
+  document.getElementById('out').innerHTML = h;
+}
+
+if (params.get('run') === '1') start();
+else { document.getElementById('progress').textContent = 'Set the options and press Run.'; if (errors.length) render(); }
+</script>
+</body>
+</html>

@@ -398,12 +398,11 @@
   // ---------------------------------------------------------------- difficulty levels
   // maxDepth: search budget (see Searcher.search), timeMs: time limit for the heuristic search,
   // noise: random jitter added to scores (makes weaker levels less predictable),
-  // slip: chance per move that Hard plays at Medium strength instead,
   // proveMs: time limit for the forced-win proof search that Master runs first.
   var LEVELS = {
     easy:   { name: 'Easy' },
     medium: { name: 'Medium', maxDepth: 2, noise: 6 },
-    hard:   { name: 'Hard', maxDepth: 4, timeMs: 1500, noise: 0, slip: 0.2 },
+    hard:   { name: 'Hard', maxDepth: 8, timeMs: 1500, noise: 4 },
     master: { name: 'Master', maxDepth: 64, timeMs: 2500, noise: 0, proveMs: 4000, book: true },
     hint:   { name: 'Hint', maxDepth: 64, timeMs: 1200, noise: 0, proveMs: 1500, book: true }     // Master's brain, shorter clock
   };
@@ -430,11 +429,6 @@
       return { move: randomBit(empty) };
     }
     var cfg = LEVELS[level] || LEVELS.master;
-    // Hard is a moderate heuristic search that, with probability `slip`, plays that move like
-    // Medium instead. `slip` is the difficulty dial: 0 = always its best effort, 1 = Medium.
-    // bestMove() always takes an immediate win and blocks an immediate threat, so a slip is a
-    // strategic inaccuracy, never a one-move blunder.
-    if (cfg.slip && Math.random() < cfg.slip) cfg = LEVELS.medium;
     if (cfg.book) {
       // The game is a proven first-player win starting from the innermost (or, by symmetry, outermost) ring.
       if ((me | opp) === 0) return { move: (Math.random() < 0.5 ? 0 : 24) + Math.floor(Math.random() * 8), proven: true };
@@ -444,8 +438,8 @@
     }
     if (cfg.proveMs) {
       // Forced-win proof search. Master/Hint run it without a budget limit, so they find every
-      // forced win. Hard only sees wins needing at most `proveBudget` quiet (non-forcing) moves,
-      // so it converts short wins reliably but can miss the deep ones - that is what makes it beatable.
+      // forced win. A level given `proveBudget` only sees wins needing at most that many quiet
+      // (non-forcing) moves, so it converts short wins reliably but can miss the deep ones.
       var pr = (prover || searcher).prove(me, opp, { timeMs: cfg.proveMs, maxBudget: cfg.proveBudget });
       if (pr) return { move: pr.move, proven: true, score: WIN, nodes: pr.nodes };
     }
